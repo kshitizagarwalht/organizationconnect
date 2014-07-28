@@ -1,0 +1,55 @@
+<html>
+<head>
+<%- include head.ejs %>
+</head>
+<body>
+
+<img src="/img/image1.jpg" class="bg1" alt="">
+	<div class="container-fluid">
+		<div class="body">
+			<div class="row"><br><br></div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-7">
+					
+				<div class="panel panel-default loginPanel" align="center">
+					<h2 class="loginHeadline"> Organizational Sharing Platform</h2>
+					<h3 class="loginHeadline"> Share accross organization, among departments or within teams</h3>
+
+				</div>
+
+
+				</div>
+				<div class="col-xs-12 col-sm-5" align="center">
+					
+				<div class="panel panel-default loginPanel">
+					<h3><div class="alert alert-success" role="alert">Login Here</div></h3>
+					<input type="text" id="lemailId" class="form-control" placeholder="Your HT Email  Id"><br>
+					<input type="password" id="lpassword" class="form-control" placeholder="Your Password">
+					<br>
+					
+					<button id="login" class="btn  btn-success loginButton" >Login</button>
+					<br><br>
+					<span class="label label-danger" id="lmessage"></span>
+
+				</div>
+				<br><br>
+				<div class="panel panel-default loginPanel">
+					
+					<h3><div class="alert alert-info" role="alert">Register Here</div></h3>
+					<input type="text" id="rname" class="form-control" placeholder="Your Name"> <br>
+					<input type="text" id="remailId" class="form-control" placeholder="Your HT Email (text before @hindustantimes.com)"> <br>
+					<input type="password" id="rpassword" class="form-control" placeholder="Your Password">
+					<br>
+					<button id="register" class="btn  btn-primary loginButton">Register</button>
+					<br><br>
+					<span class="label label-danger" id="rmessage"></span>
+
+				</div>
+			</div>
+		</div>
+	</div>
+	<%- include url.ejs %>
+</body>
+
+<script src="/js/index.js"></script>
+</html>

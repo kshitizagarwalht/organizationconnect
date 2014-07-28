@@ -1,0 +1,48 @@
+.loginButton {
+	width:50%;
+}
+
+.loginPanel {
+	padding:10px;background-color:rgba(0,0,0,0.5);border: none;
+}
+
+
+.bg1 {
+	  min-height: 100%;
+  
+  min-width: 100%;
+  position: fixed;
+  
+}
+
+.loginHeadline {
+	color: white;
+}
+
+.logout {
+	float:right;font-size: 1.2em;margin-top: 10px
+}
+
+.post {
+	font-size: 1.2em;
+}
+
+.postInfo {
+	font-size: 0.8em;
+}
+
+.comment {
+	font-size: 1em;
+}
+
+.commentInfo {
+	font-size: 0.7em;
+}
+
+.tagCheckBox {
+	display: inline-block;margin-top:10px;margin-right:10px;
+}
+
+#homeLink {
+	left:10px;position:relative;color:#8a6d3b;font-size: 2em;
+}

@@ -1,0 +1,29 @@
+<div class="row col-xs-12">
+				<div class=" alert alert-warning" style="margin-right:-45px;margin-left:-30px">
+				
+					<a 
+							href="<%=baseUrl%>/home" id="homeLink"></a>
+					<a 
+							href="<%=baseUrl%>/logout" class="logout">Logout
+						</a>
+					</div>
+</div>
+
+<div class="row col-xs-12">
+				<nav class="navbar navbar-inverse " role="navigation"
+					style="margin-right: -30px">
+					<ul class="nav navbar-nav">
+						<%
+							for(var i=0; i<organization.length; i++) {
+						%>
+						<li id="unit<%=organization[i].unitId%>"><a
+							href="<%=baseUrl%>/<%=organization[0].organization%>?unitId=<%=organization[i].unitId%>">
+								<%=organization[i].unit%>
+						</a></li>
+
+						<%
+							}
+						%>
+					</ul>
+				</nav>
+</div>

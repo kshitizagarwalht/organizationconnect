@@ -1,0 +1,74 @@
+<html>
+<head>
+<%- include head.ejs %>
+</head>
+
+<body>
+
+	<div class="container-fluid">
+		<div class="body">
+
+			<%- include header.ejs %>
+
+
+			<div class="row">
+				<br>
+				<br>
+				<br>
+				<div class="col-sm-8 col-xs-12">
+
+					<textarea id="enterPost" placeholder="Enter new update"
+						class="form-control" rows="3"></textarea>
+					<br>
+					<div class="row">
+						<div class="col-sm-8 col-xs-12">
+
+
+							<input type="text" id="enterTag" class="form-control"
+								style="width: 70%; display: inline-block;"
+								placeholder="Write new tag"></input>&nbsp;&nbsp;
+							<button id="submitTag" class="btn  btn-success btn-sm">Submit
+								Tag</button>
+							<br>
+
+						</div>
+						<div class="col-sm-4 col-xs-12" align="right">
+							<button id="submitPost" class="btn  btn-success btn-default">Submit
+								Post</button>
+						</div>
+
+						<div class="col-xs-12">
+							<br>
+							<div id="tagList"></div>
+						</div>
+					</div>
+					<br> <br>
+					<div class="alert alert-warning" role="alert">A tag can be anything like a project name or team name. Please check the tags above to filter down the posts or create a new one and start tagging your posts</div>
+					<br> <br>
+					<div id="postList"></div>
+					<%- include nopostsfound.ejs %>
+				</div>
+				<div class="col-sm-4 col-xs-12">
+					<div class="panel panel-warning" style="border:none">
+						<div class="alert alert-warning" role="alert" align="center">Subscribe to receive latest updates directly at your home page</div>
+						
+	      				<div class="panel-body">
+							<table class="table table-hover" id="tagTable"></table>
+							<div class="alert alert-danger" role="alert" id="noTagsFoundForSubs" style="display:none">No tags have been created yet...create one by submitting a new  tag below update textbox</div>
+						</div>	
+						<div align="center"><button id="subscribeUser" class="btn btn-success btn-sm">Subscribe me </button><br><br><div class="alert alert-success" role="alert" id="subscriptionDone" style="display:none">You have been successfully subscribed to the selected tags.</div></div><br>
+					</div>
+					
+				</div>
+			</div>
+
+		</div>
+	</div>
+	<%- include url.ejs %>
+</body>
+
+<script src="/js/base.js"></script>
+<script src="/js/unit.js"></script>
+
+
+</html>
