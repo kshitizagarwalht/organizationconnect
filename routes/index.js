@@ -5,19 +5,32 @@ var config = require('../config');
 var service = require('./service');
 
 
+// User subscriptions are taken saperately from ajax call and not included in base as the returned object values appear as string when using in javascript
+// user subscriptions need to be called out saperately
+function base(req, res, func) {
+  dao.getStaticData(req, res, function(err, results){
+      var data = {};
+      data.staticData = service.createStaticDataDict(results);
+      data.baseUrl = service.getBaseUrl(req);
+      
+      dao.getUserById(req, res, service.getUserIdFromSession(req), function(err, results){
+          data.userBasicInfo = results[0];
+          func.call(this, data)
+      }, req.query.unitId);
+  });
+}
+
 /* GET login page. */
 router.get('/', function(req, res) {
   service.checkUserLoginStatus(req, res);
-  res.render('index', {'baseUrl': service.getBaseUrl(req)});
+  res.render('index', {'baseUrl': service.getBaseUrl(req), 'user':{'userId':0}});
 });
-
-
 
 
 router.get('/home', function(req, res) {
   service.authenticateUser(req, res);
-  dao.getOrganizationById(req, res, service.getOrganizationIdFromSession(req), function(err, results){
-         res.render('home', {'userId':service.getUserIdFromSession(req), 'organization':results, 'baseUrl': service.getBaseUrl(req)});      
+  base(req, res, function(data){
+      res.render('home', {'user':data.userBasicInfo, 'staticData':data.staticData, 'baseUrl': data.baseUrl});      
   });
   
 });
@@ -60,7 +73,7 @@ router.post('/login', function(req, res) {
         if(results.length > 0) {
           result = results[0];
         // Setting userId in session
-          service.setUserSession(req, result.userId, result.organizationId);
+          service.setUserSession(req, result.userId);
           dao.updateUserLastLogin(req, res, service.getUserIdFromSession(req),  service.jsDateToSqlDate(new Date()), function(err, results){
              res.send(true)
           });
@@ -70,25 +83,16 @@ router.post('/login', function(req, res) {
     });
 });
 
-router.get('/getUserById', function(req, res) {
+router.get('/getUserSubscriptions', function(req, res) {
 
-  dao.getUserById(req, res, service.getUserIdFromSession(req), function(err, results){
-
-      var userDict = service.createUserDict(results);
-
-      var userId = 0;
-      for(var key in userDict) {
-        userId = key;
-        break;
-      }
-      
-      res.send({'name':userDict[userId].name, 'tagList':userDict[userId].tagList});      
-  });
+  dao.getUserSubscriptions(req, res, service.getUserIdFromSession(req), function(err, results){
+    res.send(results)
+  }, req.query.unitId);
   
 });
 
-router.get('/getTagsByOrganization', function(req, res) {
-  dao.getTagsByOrganization(req, res, req.query.unitId, service.getOrganizationIdFromSession(req), function(err, results){
+router.get('/getTagsByUnit', function(req, res) {
+  dao.getTagsByUnit(req, res, req.query.unitId, function(err, results){
         res.send(results)
   });
 });
@@ -100,9 +104,9 @@ router.get('/getTagsByPost', function(req, res) {
 });
 
 
-router.get('/getPostsByOrganization', function(req, res) {
+router.get('/getPostsByUnit', function(req, res) {
   var tagIdArray = service.getTagIdArray(req.query.tagIdArray);
-  dao.getPostsByOrganization(req, res, service.getOrganizationIdFromSession(req), req.query.unitId, tagIdArray, function(err, results){
+  dao.getPostsByUnit(req, res, req.query.unitId, tagIdArray, req.query.typeId, function(err, results){
         res.send(results);
     }, req.query.lastLogin);  
 });
@@ -118,11 +122,12 @@ router.post('/addPost', function(req, res) {
     var tagIdArray = service.getTagIdArray(req.body.tagIdArray);
     var post = req.body.post.trim();
     if(post.length > 0) {
-        dao.addPost(req, res, post, service.getOrganizationIdFromSession(req), req.body.unitId, tagIdArray, service.getUserIdFromSession(req), function(err, results){  
+        dao.addPost(req, res, post, req.body.unitId, tagIdArray, req.body.postTypeId, service.getUserIdFromSession(req), function(err, results){  
         if(err == null) {
-          res.send(true)  
+          service.bulkMailForPost(req, res, post, req.body.unitId, tagIdArray);
+          res.send(true);  
         } else {
-          res.send(false)
+          res.send(false);
         }
       });
     } else {
@@ -148,7 +153,7 @@ router.post('/addComment', function(req, res) {
 router.post('/addTag', function(req, res) {
   var tag = req.body.tag.trim();
   if(tag.length > 0) {
-    dao.addTag(req, res, tag, req.body.unitId, service.getOrganizationIdFromSession(req), service.getUserIdFromSession(req), function(err, results){
+    dao.addTag(req, res, tag, req.body.unitId, service.getUserIdFromSession(req), function(err, results){
      if(err == null) {
         res.send(results.insertId.toString())  
       } else {
@@ -177,21 +182,34 @@ router.post('/addUserSubscriptions', function(req, res) {
 });
 
 
-router.post('/deletePost', function(req, res) {
-  dao.deletePost(req, res, req.body.postId, function(err, results){
-    res.send(err)
+router.post('/deletepost', function(req, res) {
+  dao.deletePost(req, res, req.body.id, function(err, results){
+
+    if(err == null) {
+      res.send(true);  
+    } else {
+      res.send(false);
+    }
   });
 });
 
-router.post('/deleteComment', function(req, res) {
-  dao.deleteComment(req, res, req.body.commentId, function(err, results){
-    res.send(err)
+router.post('/deletecomment', function(req, res) {
+  dao.deleteComment(req, res, req.body.id, function(err, results){
+    if(err == null) {
+      res.send(true);  
+    } else {
+      res.send(false);
+    }
   }); 
 });
 
-router.post('/deleteTag', function(req, res) {
-  dao.deleteTag(req, res, req.body.tagId, function(err, results){
-    res.send(err)
+router.post('/deletetag', function(req, res) {
+  dao.deleteTag(req, res, req.body.id, function(err, results){
+    if(err == null) {
+      res.send(true);  
+    } else {
+      res.send(false);
+    }
   });
 });
 
@@ -208,10 +226,9 @@ router.get('/logout', function(req, res) {
 
 router.get('/:organization', function(req, res) {
   service.authenticateUser(req, res);
-  dao.getOrganizationById(req, res, service.getOrganizationIdFromSession(req), function(err, results){
-         res.render('unit', {'userId':service.getUserIdFromSession(req), 'organization':results, 'baseUrl': service.getBaseUrl(req)});      
+  base(req, res, function(data){
+      res.render('unit', {'user':data.userBasicInfo, 'staticData':data.staticData, 'baseUrl': data.baseUrl});      
   });
-  
 });
 
 module.exports = router;

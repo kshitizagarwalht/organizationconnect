@@ -1,27 +1,37 @@
 var mysql = require('mysql');
+var config = require('../config');
 
 var connection = mysql.createConnection({
-    host : 'localhost',
-    user : 'root',
-    password : 'root123',
-    database : 'mydatabase'
+    host : config.database.host,
+    user : config.database.user,
+    password : config.database.password,
+    database : config.database.database
 });
 
 var selectPostQuery = 'select p.postId as postId, p.post as post, DATE_FORMAT( p.dateOfPosting,  "%h:%i:%s %d-%m-%Y " )  as dateOfPosting, u.name as name, u.userId as userId from post p inner join user u on p.userId = u.userId ';
 
-exports.getOrganizationById = function(req, res, organizationId, func) {
+exports.getStaticData = function(req, res, func) {
 
     connection
             .query(
-                    'SELECT o.organization, o.email, u.unit, u.unitId FROM organization o inner join organization_unit ou on o.organizationId = ou.organizationId inner join unit u on ou.unitId = u.unitId where o.organizationId = '
-                            + organizationId, func);
+                    'SELECT unit, unitId, 1 FROM unit union select type, typeId, 2 FROM post_type', func);
 };
 
 exports.getUserById = function(req, res, userId, func) {
 
-    connection.query(
-            'SELECT u.userId, u.name, u.organizationId, u.lastLogin, us.unitId, us.tagId FROM user u left join user_subscriptions us on u.userId = us.userId where u.userId = '
-                    + userId, func);
+    connection.query('SELECT u.userId, u.name, u.lastLogin FROM user u where u.userId = ' + userId, func);
+
+};
+
+exports.getUserSubscriptions = function(req, res, userId, func, unitId) {
+
+    var query = 'SELECT us.unitId, us.tagId from user_subscriptions us where us.userId = ' + userId;
+
+    if(typeof(unitId) != 'undefined') {
+        query = query + ' and us.unitId = ' + unitId;
+    }
+    
+    connection.query(query, func);
 
 };
 
@@ -35,7 +45,7 @@ exports.getUserByEmailId = function(req, res, emailId, func) {
 exports.getUserByLogin = function(req, res, emailId, password, func) {
 
     connection.query(
-            'SELECT userId, organizationId FROM user where emailId = "'
+            'SELECT userId FROM user where emailId = "'
                     + emailId + '" and password = "' + password
                     + '" and code = ""', func)
 
@@ -48,27 +58,19 @@ exports.updateUserLastLogin = function(req, res, userId, time, func) {
 };
 
 
-exports.getTagsByOrganization = function(req, res, unitId, organizationId, func) {
+exports.getTagsByUnit = function(req, res, unitId, func) {
 
-    connection.query('SELECT tagId, tag FROM tag where organizationId = '
-            + organizationId + ' and unitId = ' + unitId + ' order by tag desc', func);
-
-};
-
-exports.getTagsByUser = function(req, res, userId, func) {
-
-    connection.query('SELECT * FROM tag where userId = ' + userId, func);
+    connection.query('SELECT t.tagId, t.tag, t.userId, u.name FROM tag t inner join user u on t.userId = u.userId where unitId = ' + unitId + ' order by tag desc', func);
 
 };
+
 
 exports.getTagsByPost = function(req, res, postId, func) {
-    connection.query('SELECT t.tag FROM post_tag pt inner join tag t on pt.tagId = t.tagId where postId = ' + postId, func);
+    connection.query('SELECT t.tag FROM post_tag pt inner join tag t on pt.tagId = t.tagId where pt.postId = ' + postId, func);
 
 };
 
-exports.getPostsByOrganization = function(req, res, organizationId, unitId,
-        tagIdArray, func, lastLogin) {
-    
+exports.getPostsByUnit = function(req, res, unitId, tagIdArray, typeId, func, lastLogin) {
     
     var query = selectPostQuery;
             
@@ -88,8 +90,12 @@ exports.getPostsByOrganization = function(req, res, organizationId, unitId,
         query = query + ' where ';
     }
 
-    query = query + ' p.organizationId = ' + organizationId
-            + ' and p.unitId = ' + unitId;
+    query = query  + ' p.unitId = ' + unitId;
+
+    if(typeId !== '-1') {
+        query = query + ' and p.typeId = ' + typeId;
+    }
+
     if(typeof(lastLogin) != 'undefined')  {
         query = query + ' and p.dateOfPosting >= "' + lastLogin + '"';
     }      
@@ -100,9 +106,8 @@ exports.getPostsByOrganization = function(req, res, organizationId, unitId,
 
 
 exports.getCommentsByPost = function(req, res, postId, func) {
- 
-    connection.query('select c.commentId, c.comment, c.userId, c.dateOfCommenting, u.name from comment c inner join user u on c.userId = u.userId  where postId = ' + postId + ' order by dateOfCommenting desc', func);
 
+    connection.query('select c.commentId, c.comment, c.userId, c.dateOfCommenting, u.name from comment c inner join user u on c.userId = u.userId  where postId = ' + postId + ' order by dateOfCommenting desc', func);
 };
 
 
@@ -112,92 +117,89 @@ exports.getPostsByUser = function(req, res, userId, func) {
 
 };
 
-exports.addUser = function(req, res, name, emailId, password, code,
-        organizationId, func) {
+exports.addUser = function(req, res, name, emailId, password, code, func) {
 
     connection.query(
-            'insert into user (emailId, name, password, code, organizationId) values("'
+            'insert into user (emailId, name, password, code) values("'
                     + emailId + '", "' + name + '", "' + password + '", "'
-                    + code + '", ' + organizationId + ')', func);
+                    + code + ')', func);
 
 };
 
-exports.addTag = function(req, res, tag, unitId, organizationId, userId, func) {
+exports.addTag = function(req, res, tag, unitId, userId, func) {
     
     connection.query(
-            'insert into tag (tag, unitId, organizationId, userId) values("' + tag
-                    + '", ' + unitId + ', ' + organizationId + ', ' + userId + ')', func);
+            'insert into tag (tag, unitId, userId) values("' + tag
+                    + '", ' + unitId + ', ' + userId + ')', func);
     
 };
 
-exports.addPost = function(req, res, post, organizationId, unitId, tagIdArray,
-        userId, func) {
+exports.addPost = function(req, res, post, unitId, tagIdArray, postTypeId, userId, func) {
 
-    var query = 'insert into post (post, organizationId, unitId, userId) values("'
+    var query = 'insert into post (post, unitId, userId, typeId) values("'
             + post
             + '", '
-            + organizationId
-            + ', '
             + unitId
             + ', '
             + userId
+            + ', '
+            + postTypeId
             + ')';
     var error = false;
-    if (post.trim().length > 0) {
-        if (typeof (tagIdArray) != 'undefined') {
-            connection
-                    .query(
-                            query,
-                            function(err, results) {
+    
+    if (typeof (tagIdArray) != 'undefined') {
+        connection
+                .query(
+                        query,
+                        function(err, results) {
 
-                                var postId = results.insertId;
-                                var length = tagIdArray.length;
-                                for(var i=0;i<length-1;i++)
-                                {            
-                                            connection
-                                                    .query(
-                                                            'insert into post_tag (postId, tagId) values ('
-                                                                    + postId
-                                                                    + ', '
-                                                                    + tagIdArray[i]
-                                                                    + ')',
-                                                            function(err,
-                                                                    results) {
-
-                                                                if (err) {
-                                                                    connection
-                                                                            .query(
-                                                                                    'delete from post_tag where postId = '
-                                                                                            + postId,
-                                                                                    function(
-                                                                                            err,
-                                                                                            results) {
-                                                                                        connection
-                                                                                                .query(
-                                                                                                        'delete from post where postId = '
-                                                                                                                + postId,
-                                                                                                        func);
-                                                                                    });
-                                                                }
-                                                            });
-                                        };
-
-                                   
+                            var postId = results.insertId;
+                            var length = tagIdArray.length;
+                            for(var i=0;i<length-1;i++)
+                            {            
                                         connection
-                                                    .query(
-                                                            'insert into post_tag (postId, tagId) values ('
-                                                                    + postId
-                                                                    + ', '
-                                                                    + tagIdArray[length-1]
-                                                                    + ')',
-                                                            func);
-                                          
-                            });
-        } else {
-            connection.query(query, func);
-        }
+                                                .query(
+                                                        'insert into post_tag (postId, tagId) values ('
+                                                                + postId
+                                                                + ', '
+                                                                + tagIdArray[i]
+                                                                + ')',
+                                                        function(err,
+                                                                results) {
 
+                                                            if (err) {
+                                                                connection
+                                                                        .query(
+                                                                                'delete from post_tag where postId = '
+                                                                                        + postId,
+                                                                                function(
+                                                                                        err,
+                                                                                        results) {
+                                                                                    connection
+                                                                                            .query(
+                                                                                                    'delete from post where postId = '
+                                                                                                            + postId,
+                                                                                                    func);
+                                                                                });
+                                                            }
+                                                        });
+                                    };
+
+                               
+                                    connection
+                                                .query(
+                                                        'insert into post_tag (postId, tagId) values ('
+                                                                + postId
+                                                                + ', '
+                                                                + tagIdArray[length-1]
+                                                                + ')',
+                                                        func);
+                                      
+                        });
+    } else {
+        connection.query(query, func);
     }
+    
 }
 
 exports.addComment = function(req, res, comment, postId, userId, func) {
@@ -209,7 +211,7 @@ exports.addComment = function(req, res, comment, postId, userId, func) {
 
 exports.addUserSubscriptions = function(req, res, userId, unitId, tagIdArray, func) {
     
-    connection.query('delete from user_subscriptions where userId = ' + userId, function(err, results){
+    connection.query('delete from user_subscriptions where userId = ' + userId + ' and unitId = ' + unitId, function(err, results){
         if(err == null) {
             var length = tagIdArray.length;
             for(var i=0;i<length-1;i++) {
@@ -221,11 +223,7 @@ exports.addUserSubscriptions = function(req, res, userId, unitId, tagIdArray, fu
                                         + unitId
                                         + ', '
                                         + tagIdArray[i]
-                                        + ')',
-                                function(err,
-                                        results) {
-
-                                });
+                                        + ')');
                 }
                 connection.query(
                                 'insert into user_subscriptions (userId, unitId, tagId) values ('
@@ -243,6 +241,24 @@ exports.addUserSubscriptions = function(req, res, userId, unitId, tagIdArray, fu
         }
     });
     
+};
+
+exports.getUsersByTagSubscriptions = function(req, res, unitId, tagIdArray, func) {
+
+    query = 'SELECT distinct u.emailId from user u inner join user_subscriptions us on u.userId = us.userId where us.unitId = ' + unitId;
+
+    if (typeof (tagIdArray) != 'undefined') {
+        query = query + ' and us.tagId in (';
+        var length = tagIdArray.length;
+
+        for ( var i = 0; i < length - 1; i++) {
+            query = query + tagIdArray[i] + ', ';
+            
+        }
+        query = query + tagIdArray[length - 1] + ')';
+    }
+    
+    connection.query(query, func);
 };
 
 
@@ -268,7 +284,7 @@ exports.deleteComment = function(req, res, commentId, func) {
 
 exports.deleteTag = function(req, res, tagId, func) {
 
-    connection.query('delete FROM post where tagId = ' + tagId, func);
+    connection.query('delete FROM tag where tagId = ' + tagId, func);
 
 };
 

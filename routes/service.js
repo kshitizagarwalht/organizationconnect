@@ -1,6 +1,7 @@
 var crypto = require('crypto');
 var nodemailer = require("nodemailer");
 var config = require('../config');
+var dao = require('./dao');
 
 var smtpTransport = nodemailer.createTransport("SMTP",{
    service: "Gmail",
@@ -23,12 +24,8 @@ exports.getUserIdFromSession = function(req){
   return req.session.userId;	
 };
 
-exports.getOrganizationIdFromSession = function(req){
-  return req.session.organizationId;  
-};
 
-
-exports.sendMail = function(to, subject, text) {
+var sendMail = function(to, subject, text) {
 	smtpTransport.sendMail({
     to: to, 
     subject: subject, 
@@ -42,6 +39,8 @@ exports.sendMail = function(to, subject, text) {
   });
 }  
 
+exports.sendMail = sendMail;
+
 exports.authenticateUser = function(req, res) {
   if(typeof(req.session.userId) == 'undefined') {
     res.redirect('/');
@@ -54,9 +53,8 @@ exports.checkUserLoginStatus = function(req, res) {
   } 
 };
 
-exports.setUserSession = function(req, userId, organizationId) {
+exports.setUserSession = function(req, userId) {
   req.session.userId = userId;
-  req.session.organizationId = organizationId;
 };
 
 exports.destroySession = function(req) {
@@ -78,23 +76,37 @@ exports.jsDateToSqlDate = function(date) {
   return date.getFullYear() + '-' + date.getMonth() + '-' + date.getDay() + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
 }
 
-exports.createUserDict = function(data) {
+exports.bulkMailForPost = function(req, res, post, unitId, tagIdArray) {
+
+  var emailList = ''
+  
+  dao.getUsersByTagSubscriptions(req, res, unitId, tagIdArray, function(err, results){
+      var length = results.length;
+      for(var i=0;i<length-1;i++) {
+        emailList = emailList + results[i] + ', ';
+      }
+      emailList = emailList + results[length-1];
+      sendMail(emailList, 'New Update', post);
+  });
+  
+}
+
+exports.createStaticDataDict = function(data) {
   var dict = {};
-  var firstData = data[0];
-  var userId = firstData.userId;
-  dict[userId] = {'name':data[0].name, 'tagList':{}};
-  var tagList = dict[userId].tagList;
+  dict.organizationName = config.organizationName;
+  dict.units = {};
+  dict.ques_types = {};
   for(var i=0; i<data.length;i++) {
-    var unitId = data[i].unitId;
-    if(unitId in tagList) {
-      tagList[unitId].push(data[i].tagId);
+    var singleData = data[i];
+    if(singleData['1'] === 1) {
+      dict.units[singleData.unitId] = singleData.unit;
     } else {
-      tagList[unitId] = [data[i].tagId];
+      dict.ques_types[singleData.unitId] = singleData.unit;
     }
   }
-
   return dict;
 }
+
 
 
 

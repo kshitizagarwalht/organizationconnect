@@ -46,3 +46,16 @@
 #homeLink {
 	left:10px;position:relative;color:#8a6d3b;font-size: 2em;
 }
+
+select {
+   color: white;
+   width: 100px;
+   padding: 5px;
+   border-radius: 5px;
+   -webkit-appearance: none;
+   background: url(down_arrow_select.jpg) no-repeat right #222;
+   }
+
+#filterByPost, #nosubscribedtags {
+	display: none;
+}   

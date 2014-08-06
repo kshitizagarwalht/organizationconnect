@@ -2,7 +2,7 @@
 				<div class=" alert alert-warning" style="margin-right:-45px;margin-left:-30px">
 				
 					<a 
-							href="<%=baseUrl%>/home" id="homeLink"></a>
+						href="<%=baseUrl%>/home" id="homeLink"><%=user.name%></a>
 					<a 
 							href="<%=baseUrl%>/logout" class="logout">Logout
 						</a>
@@ -13,12 +13,16 @@
 				<nav class="navbar navbar-inverse " role="navigation"
 					style="margin-right: -30px">
 					<ul class="nav navbar-nav">
+					<li id="navhome"><a
+							href="<%=baseUrl%>/home">
+								Home
+					</a></li>
 						<%
-							for(var i=0; i<organization.length; i++) {
+							for(var unitId in staticData.units) {
 						%>
-						<li id="unit<%=organization[i].unitId%>"><a
-							href="<%=baseUrl%>/<%=organization[0].organization%>?unitId=<%=organization[i].unitId%>">
-								<%=organization[i].unit%>
+						<li id="unit<%=unitId%>"><a
+							href="<%=baseUrl%>/<%=staticData.organizationName%>?unitId=<%=unitId%>">
+								<%=staticData.units[unitId]%>
 						</a></li>
 
 						<%

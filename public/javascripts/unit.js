@@ -10,22 +10,23 @@ function init() {
 		unitId = urlVars['unitId'];
 		$('#unit'+unitId).addClass('active');
 	}
-
-	getUserById(2);
-	getTagsByOrganization();
-
+	getUserSubscriptions(2, unitId)
 }
 
 function getUnitId() {
 	return unitId;
 }
 
-function getTagsByOrganization() {
+function getLatestPosts() {
+	getPostsByUnit();
+}
+
+function getTagsByUnit() {
 	$.ajax({
-		url : url + "/getTagsByOrganization/",
+		url : url + "/getTagsByUnit/",
 		traditional : true,
 		data : {
-			'unitId' : unitId
+			'unitId' : getUnitId()
 		},
 		success : function(data) {
 			var tagList = '';
@@ -35,7 +36,7 @@ function getTagsByOrganization() {
 				var tagId = data[i]['tagId'];
 				tagList = tagList
 						+ getTagCheckBox(tagId, tag)
-				tagTable = tagTable + getTagTableRow(tagId, tag);	
+				tagTable = tagTable + getTagTableRow(tagId, tag, data[i].userId);	
 			}
 			$('#tagList').html(tagList);
 			if(tagTable.length === 0) {
@@ -46,7 +47,7 @@ function getTagsByOrganization() {
 				$('#subscribeUser').show();
 				$('#tagTable').html(tagTable);
 			}
-			getPostsByOrganization();
+			getLatestPosts();
 		}
 	});
 }
@@ -55,11 +56,16 @@ function getTagCheckedStatus(tagId) {
 	return (typeof(usertagList) !== 'undefined' && usertagList.indexOf(tagId) > -1) ? "checked" : "";
 }
 
-function getTagTableRow(tagId, tag) {
+function getTagTableRow(tagId, tag, userId) {
 	
-	return '<tr><td><input type="checkbox" value="' + tagId
+	var block = '<tr><td><input type="checkbox" value="' + tagId
 			+ '" id="' + tagId + 's"' + getTagCheckedStatus(tagId) + '></td><td><label  for="' + tagId
-			+ 's" style="font-size:0.8em;font-weight: 400;"> <span>' + tag + '</span></label></td></tr>';
+			+ 's" style="font-size:0.8em;font-weight: 400;"> <span>' + tag + '</span></label>';
+	if(userId == window.userId) {
+		block = block + '&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" onclick="deleteElement(' + tagId + ', \'tag\')">Delete</button>';
+	}		
+	block = block + '</td></tr>';		
+	return block;		
 }
 
 function getTagCheckBox(tagId, tag) {
@@ -89,13 +95,14 @@ $( window ).load(function() {
 				type : "POST",
 				data : {
 					'post' : post,
-					'unitId' : unitId,
-					'tagIdArray' : getSelectedTags('tagList')
+					'unitId' : getUnitId(),
+					'tagIdArray' : getSelectedTags('tagList'),
+					'postTypeId' : $('#selectPostType').val()
 				},
 				traditional : true,
 				success : function(data) {
 					if(data == true) {
-						getPostsByOrganization();
+						getLatestPosts();
 					}
 				}
 			});
@@ -108,13 +115,11 @@ $( window ).load(function() {
 				type : "POST",
 				data : {
 					'tag' : tag,
-					'unitId' : unitId
+					'unitId' : getUnitId()
 				},
 				traditional : true,
 				success : function(data) {
-					$('#tagList').append(getTagCheckBox(data, tag));
-					$('#tagTable').append(getTagTableRow(data, tag));
-					getTagsByOrganization();
+					getTagsByUnit();
 				}
 			});
 		}
@@ -124,7 +129,7 @@ $( window ).load(function() {
 				url : url + "/addUserSubscriptions/",
 				type : "POST",
 				data : {
-					'unitId' : unitId,
+					'unitId' : getUnitId(),
 					'tagIdArray' : getSelectedTags('tagTable')
 				},
 				traditional : true,
@@ -149,7 +154,7 @@ $( window ).load(function() {
 		});
 
 		$("#tagList").change(function() {
-			getPostsByOrganization();
+			getLatestPosts();
 		});
 
 

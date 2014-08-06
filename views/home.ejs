@@ -17,7 +17,16 @@
 				<br>
 				<br>
 				<div class="col-xs-12">
-					<div class="alert alert-warning" role="alert">This is your home page. Here all your unread posts will appear related to your subscribed departments and tags. Please click on the above links to see or share posts related to a department.</div>
+					<div class="alert alert-warning" role="alert">This is your home page. Here all your unread posts will appear related to your subscribed tags. Please click on the above links to see or share posts related to a department or tag.</div>
+
+					<div align="right">
+					<select id="filterByPost">
+						<option value="-1">All</option>
+						<%- include selectposttype.ejs %>
+					</select></div>
+					<div class="alert alert-danger" role="alert" id="nosubscribedtags">You are not subscribed to any tags yet...subscribe to your interest tags and get updates from those directly at your home page</div>
+					
+					<br>
 					<div id="postList"></div>
 					<%- include nopostsfound.ejs %>
 				</div>
@@ -28,7 +37,7 @@
 	<%- include url.ejs %>
 </body>
 
-<script src="/js/base.js"></script>
+
 <script src="/js/home.js"></script>
 
 
