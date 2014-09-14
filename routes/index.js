@@ -3,6 +3,7 @@ var router = express.Router();
 var dao = require('./dao');
 var config = require('../config');
 var service = require('./service');
+var job = null;
 
 
 // User subscriptions are taken saperately from ajax call and not included in base as the returned object values appear as string when using in javascript
@@ -224,11 +225,57 @@ router.get('/logout', function(req, res) {
   res.redirect('/');
 });
 
+
+function sendBirthdayWishes() {
+  dao.getBirthDayUsers(req, res, service.jsDateToSqlDate(new Date()).split(' ')[0], function(err, results){
+    if(err == null) {
+      var length = results.length;
+      for(var i = 0; i<length;i++) {
+        var result = results[i];
+        service.bulkMailForBirthday(result.name, 'k.agarwal4@gmail.com');
+        // dao.getUserByUnitId(req, res, results[i].unitId, function(err, results){
+        //   var length = results.length;
+        //   for(var i = 0; i<length;i++) {
+
+        //   }  
+        // });
+      }
+      res.send(true);
+    } else {
+      res.send(false);
+    }
+  });
+}
+router.get('/sendBirthdayWishes', function(req, res) {
+  var CronJob = require('cron').CronJob;
+  job = new CronJob({
+    cronTime: '00 53 00 * * 0-7',
+    onTick: function() {
+
+      sendBirthdayWishes();
+      // Runs every weekday (Monday through Friday)
+      // at 11:30:00 AM. It does not run on Saturday
+      // or Sunday.
+    },
+    start: false
+  });
+  job.start();
+  res.send(true);
+});
+
+
+router.get('/stopBirthdayWishes', function(req, res) {
+  if(job) job.stop();
+  res.send(true);
+});
+
+
 router.get('/:organization', function(req, res) {
   service.authenticateUser(req, res);
   base(req, res, function(data){
       res.render('unit', {'user':data.userBasicInfo, 'staticData':data.staticData, 'baseUrl': data.baseUrl});      
   });
 });
+
 
 module.exports = router;

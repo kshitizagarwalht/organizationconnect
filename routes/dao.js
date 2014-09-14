@@ -19,7 +19,13 @@ exports.getStaticData = function(req, res, func) {
 
 exports.getUserById = function(req, res, userId, func) {
 
-    connection.query('SELECT u.userId, u.name, u.lastLogin FROM user u where u.userId = ' + userId, func);
+    connection.query('SELECT u.userId, u.name, u.lastLogin, u.unitId FROM user u where u.userId = ' + userId, func);
+
+};
+
+exports.getUserByUnitId = function(req, res, unitId, func) {
+
+    connection.query('SELECT u.name, u.emailId FROM user u where u.unitId = ' + unitId, func);
 
 };
 
@@ -42,8 +48,16 @@ exports.getUserByEmailId = function(req, res, emailId, func) {
 
 };
 
-exports.getUserByLogin = function(req, res, emailId, password, func) {
 
+exports.getBirthDayUsers = function(req, res, date, func) {
+
+    connection.query('SELECT name, emailId, unitId FROM user where dateOfBirth = "' + date
+            + '"', func);
+
+};
+
+exports.getUserByLogin = function(req, res, emailId, password, func) {
+    
     connection.query(
             'SELECT userId FROM user where emailId = "'
                     + emailId + '" and password = "' + password

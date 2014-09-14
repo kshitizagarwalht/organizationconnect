@@ -32,6 +32,7 @@ var sendMail = function(to, subject, text) {
     text: text 
 	}, function(error, response){
     if(error){
+      console.log(error)
        return false;
     } else{
        return true;
@@ -73,14 +74,15 @@ exports.getTagIdArray = function(tagIdArray) {
 }
 
 exports.jsDateToSqlDate = function(date) {
-  return date.getFullYear() + '-' + date.getMonth() + '-' + date.getDay() + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+  var month = date.getMonth() + 1;
+  return date.getFullYear() + '-' + month + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
 }
 
 exports.bulkMailForPost = function(req, res, post, unitId, tagIdArray) {
 
   var emailList = ''
   
-  dao.getUsersByTagSubscriptions(req, res, unitId, tagIdArray, function(err, results){
+  dao.getUsersByTagSubscriptions(req, res, name, tagIdArray, function(err, results){
       var length = results.length;
       for(var i=0;i<length-1;i++) {
         emailList = emailList + results[i] + ', ';
@@ -88,6 +90,12 @@ exports.bulkMailForPost = function(req, res, post, unitId, tagIdArray) {
       emailList = emailList + results[length-1];
       sendMail(emailList, 'New Update', post);
   });
+  
+}
+
+exports.bulkMailForBirthday = function(birthdayPersonName, emailList) {
+
+  sendMail(emailList, 'Happy bady', birthdayPersonName);
   
 }
 
